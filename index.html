@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zakat Calculator — حساب الزكاة</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Amiri:wght@400;700&family=DM+Mono:wght@400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:#C8A84B;--gold-light:#E8CC7A;--gold-dark:#8B6914;
+  --bg:#0D0F0A;--bg2:#141810;--bg3:#1C2016;
+  --surface:#1E2318;--surface2:#252B1C;
+  --border:#2E3425;--border-gold:#3A3218;
+  --text:#E8E4D8;--text-muted:#8A8778;--text-dim:#5A5A4A;
+  --green:#7ABF65;--red:#D97070;--teal:#6DC4B0;--purple:#9B7EC8;
+  --live:#5AAF80;--manual:#C8A84B;--err:#D97070;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(200,168,75,.08) 0%,transparent 60%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 20px 140px}
+
+header{padding:36px 0 22px;border-bottom:1px solid var(--border-gold);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.h1{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;color:var(--gold-light);letter-spacing:-.5px}
+.arabic{font-family:'Amiri',serif;font-size:1.15rem;color:var(--gold);opacity:.7;direction:rtl;margin-top:2px}
+.hsub{font-size:.76rem;color:var(--text-muted);margin-top:5px;font-weight:300;line-height:1.5}
+.hbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* NISAB */
+.nisab-bar{background:var(--surface);border:1px solid var(--border-gold);border-left:3px solid var(--gold);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.nb label{font-size:.64rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px}
+.nb .v{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--gold-light);font-weight:500}
+.nb .s{font-size:.67rem;color:var(--text-muted);margin-top:1px}
+
+/* HAWL */
+.hawl-row{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 15px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hawl-row label{font-size:.73rem;color:var(--text-muted);white-space:nowrap}
+.hawl-row input[type=date]{background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:.8rem;padding:5px 9px;outline:none;transition:border-color .15s}
+.hawl-row input[type=date]:focus{border-color:var(--gold-dark)}
+.hawl-desc{font-size:.71rem;color:var(--text-dim);font-style:italic}
+
+/* ── RATES PANEL ── */
+.rates-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.rates-hdr{padding:10px 15px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rates-hdr-l{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.rates-ttl{font-size:.84rem;font-weight:700;color:var(--text)}
+.fetch-status{display:flex;align-items:center;gap:6px;font-size:.71rem}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sdot.live{background:var(--live);box-shadow:0 0 5px rgba(90,175,128,.5)}
+.sdot.manual{background:var(--manual)}
+.sdot.error{background:var(--err)}
+.sdot.loading{background:var(--text-dim)}
+.stext{color:var(--text-muted)}.stext.live{color:var(--live)}.stext.error{color:var(--err)}
+.rts{font-size:.66rem;color:var(--text-dim);margin-left:auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:13px;height:13px;border:2px solid rgba(90,175,128,.2);border-top-color:var(--live);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+
+.rates-body{padding:13px 15px}
+.rates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:9px}
+
+.rcard{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:8px 11px;transition:border-color .2s}
+.rcard.live{border-color:rgba(90,175,128,.22)}
+.rcard.manual{border-color:rgba(200,168,75,.22)}
+.rcard.fallback{border-color:rgba(217,112,112,.22)}
+.rcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.rpair{font-size:.73rem;font-weight:700;color:var(--text);letter-spacing:.2px}
+.rbadge{font-size:.6rem;padding:2px 5px;border-radius:4px;font-family:'DM Mono',monospace}
+.rbadge.live{background:rgba(90,175,128,.14);color:var(--live);border:1px solid rgba(90,175,128,.22)}
+.rbadge.manual{background:rgba(200,168,75,.1);color:var(--manual);border:1px solid rgba(200,168,75,.18)}
+.rbadge.fallback{background:rgba(217,112,112,.1);color:var(--err);border:1px solid rgba(217,112,112,.18)}
+.rval{background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.92rem;font-weight:500;width:100%;padding:2px 0;transition:border-color .15s,color .15s}
+.rval:focus{border-bottom-color:var(--gold-dark)}
+.rval.live{color:var(--live)}.rval.manual{color:var(--manual)}
+.rcard-bot{margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.rnote{font-size:.61rem;color:var(--text-dim);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.restore-btn{background:transparent;border:none;font-size:.61rem;color:var(--text-dim);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;flex-shrink:0}
+.restore-btn:hover{color:var(--gold-light)}
+
+.rates-note{margin-top:10px;padding:8px 11px;background:rgba(200,168,75,.04);border:1px solid rgba(200,168,75,.1);border-radius:6px;font-size:.71rem;color:var(--text-muted);line-height:1.6}
+.rates-note strong{color:var(--text)}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.shdr{padding:11px 15px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;transition:background .15s}
+.shdr:hover{background:var(--bg3)}
+.sicon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.ic-cash{background:rgba(90,138,74,.2);color:var(--green)}
+.ic-inv{background:rgba(74,138,122,.2);color:var(--teal)}
+.ic-metal{background:rgba(200,168,75,.2);color:var(--gold-light)}
+.ic-crypto{background:rgba(168,168,100,.15);color:#B8B860}
+.ic-re{background:rgba(100,130,200,.2);color:#8aaae0}
+.ic-liab{background:rgba(168,72,72,.2);color:var(--red)}
+.stitle{font-size:.85rem;font-weight:700;color:var(--text);flex:1}
+.sdesc{font-size:.69rem;color:var(--text-muted)}
+.stotal{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--gold-light);font-weight:500;white-space:nowrap}
+.stotal.neg{color:var(--red)}
+.stotal.excl{color:var(--text-dim)}
+.chevron{color:var(--text-dim);font-size:.66rem;transition:transform .2s;margin-left:4px}
+.section.collapsed .chevron{transform:rotate(-90deg)}
+.section.collapsed .sbody{display:none}
+.sbody{padding:12px 15px 15px}
+
+/* ── ROWS ── */
+.dlist{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
+.drow{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;transition:border-color .15s}
+.drow:hover{border-color:var(--border-gold)}
+.drow.jt{border-color:rgba(155,126,200,.32);background:rgba(155,126,200,.04)}
+.row-main{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:start}
+.lbl-area{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lbl-area input[type=text]{background:transparent;border:none;outline:none;color:var(--text);font-size:.79rem;width:100%;font-family:'Lato',sans-serif}
+.lbl-area input[type=text]::placeholder{color:var(--text-dim)}
+.jt-toggle{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--text-dim);margin-top:1px}
+.jt-toggle input[type=checkbox]{accent-color:var(--purple);cursor:pointer;width:11px;height:11px}
+.jt-toggle label{cursor:pointer;user-select:none}
+.jt-extra{margin-top:4px;padding:5px 8px;background:rgba(155,126,200,.07);border:1px solid rgba(155,126,200,.18);border-radius:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jt-pct-g{display:flex;align-items:center;gap:4px;font-size:.69rem;color:var(--purple)}
+.jt-pct-inp{background:var(--bg3);border:1px solid rgba(155,126,200,.28);border-radius:4px;color:var(--purple);font-family:'DM Mono',monospace;font-size:.75rem;padding:3px 5px;width:48px;outline:none}
+.jt-info{font-size:.66rem;color:var(--text-dim);font-style:italic}
+.jt-disp{font-size:.67rem;font-family:'DM Mono',monospace;color:var(--purple)}
+.awrap{display:flex;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0}
+.csel{background:var(--surface2);border:none;border-right:1px solid var(--border);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.67rem;padding:0 5px;height:29px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;min-width:44px}
+.anum{background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.79rem;padding:0 7px;height:29px;width:112px}
+.anum::placeholder{color:var(--text-dim)}
+.dcmp{font-family:'DM Mono',monospace;font-size:.74rem;color:var(--gold);min-width:84px;text-align:right;white-space:nowrap;flex-shrink:0;padding-top:6px}
+.dcmp.jc{color:var(--purple)}
+.brm{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:.92rem;line-height:1;padding:2px 4px;border-radius:3px;transition:color .15s;flex-shrink:0;padding-top:4px}
+.brm:hover{color:var(--red)}
+
+/* metal row */
+.mrow{display:grid;grid-template-columns:1fr auto auto auto auto;gap:6px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:7px 9px}
+.mrow:hover{border-color:var(--border-gold)}
+.mrow input[type=text]{background:transparent;border:none;outline:none;color:var(--text);font-size:.79rem;width:100%;font-family:'Lato',sans-serif}
+.mrow input[type=text]::placeholder{color:var(--text-dim)}
+.msel{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.69rem;padding:4px 6px;outline:none;cursor:pointer;flex-shrink:0}
+.gwrap{display:flex;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0}
+.gbadge{padding:0 6px;font-size:.67rem;color:var(--text-dim);font-family:'DM Mono',monospace;border-right:1px solid var(--border);height:29px;display:flex;align-items:center;background:var(--surface2)}
+.mrow input[type=number]{background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.79rem;padding:0 7px;height:29px;width:96px}
+
+/* real estate row */
+.re-row{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;transition:border-color .15s;margin-bottom:6px}
+.re-row:hover{border-color:var(--border-gold)}
+.re-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:8px}
+.re-lbl input[type=text]{background:transparent;border:none;outline:none;color:var(--text);font-size:.79rem;width:100%;font-family:'Lato',sans-serif;display:block;margin-bottom:3px}
+.re-lbl input[type=text]::placeholder{color:var(--text-dim)}
+.re-type-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.re-type-label{font-size:.68rem;color:var(--text-dim)}
+.re-type-sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.69rem;padding:3px 6px;outline:none;cursor:pointer}
+.re-status-badge{font-size:.65rem;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.re-status-badge.zakatable{background:rgba(90,138,74,.2);color:var(--green);border:1px solid rgba(90,138,74,.25)}
+.re-status-badge.not-zakatable{background:rgba(217,112,112,.12);color:var(--err);border:1px solid rgba(217,112,112,.2)}
+.re-status-badge.info{background:rgba(200,168,75,.1);color:var(--gold);border:1px solid rgba(200,168,75,.18)}
+.re-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:7px}
+.re-field{display:flex;flex-direction:column;gap:3px}
+.re-field label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+.re-field-input{display:flex;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.re-field-cur{padding:0 6px;font-size:.67rem;color:var(--text-dim);font-family:'DM Mono',monospace;border-right:1px solid var(--border);height:28px;display:flex;align-items:center;background:var(--surface2);white-space:nowrap}
+.re-field-input input{background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.78rem;padding:0 7px;height:28px;flex:1;min-width:0}
+.re-field-input input::placeholder{color:var(--text-dim)}
+.re-ruling{padding:7px 10px;border-radius:5px;font-size:.71rem;line-height:1.6;margin-top:4px}
+.re-ruling.green{background:rgba(90,138,74,.08);border:1px solid rgba(90,138,74,.18);color:#a8d890}
+.re-ruling.red{background:rgba(217,112,112,.07);border:1px solid rgba(217,112,112,.18);color:#e8a0a0}
+.re-ruling.yellow{background:rgba(200,168,75,.07);border:1px solid rgba(200,168,75,.18);color:var(--gold-light)}
+.re-ruling strong{color:var(--text)}
+.re-contribution{font-family:'DM Mono',monospace;font-size:.73rem;color:var(--gold);text-align:right;margin-top:4px}
+
+/* add button */
+.badd{background:transparent;border:1px dashed var(--border);border-radius:6px;color:var(--text-dim);font-size:.74rem;padding:7px 13px;cursor:pointer;width:100%;transition:all .15s;font-family:'Lato',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px}
+.badd:hover{border-color:var(--gold-dark);color:var(--gold-light);background:rgba(200,168,75,.03)}
+
+/* notes */
+.note{background:rgba(200,168,75,.05);border:1px solid rgba(200,168,75,.11);border-radius:6px;padding:9px 12px;font-size:.72rem;color:var(--text-muted);line-height:1.65;margin-top:9px}
+.note strong{color:var(--text)}
+.note.info{background:rgba(74,138,122,.05);border-color:rgba(74,138,122,.16)}
+.note.warn{background:rgba(168,72,72,.05);border-color:rgba(168,72,72,.16)}
+.note.purple{background:rgba(155,126,200,.05);border-color:rgba(155,126,200,.17)}
+.note.blue{background:rgba(100,130,200,.05);border-color:rgba(100,130,200,.17)}
+
+/* buttons */
+.btn{padding:7px 12px;border-radius:6px;border:none;font-family:'Lato',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;text-transform:uppercase;white-space:nowrap}
+.btn-gold{background:var(--gold);color:var(--bg)}.btn-gold:hover{background:var(--gold-light)}
+.btn-out{background:transparent;color:var(--text-muted);border:1px solid var(--border)}.btn-out:hover{border-color:var(--gold-dark);color:var(--gold-light)}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(168,72,72,.28)}.btn-red:hover{background:rgba(168,72,72,.09)}
+.btn-sum{background:rgba(200,168,75,.1);color:var(--gold-light);border:1px solid var(--border-gold)}.btn-sum:hover{background:rgba(200,168,75,.17)}
+.btn-ref{background:rgba(90,175,128,.09);color:var(--live);border:1px solid rgba(90,175,128,.22);font-size:.71rem;padding:5px 9px}.btn-ref:hover{background:rgba(90,175,128,.16)}.btn-ref:disabled{opacity:.35;cursor:not-allowed}
+
+/* summary */
+.summary{position:sticky;bottom:12px;background:var(--surface);border:1px solid var(--border-gold);border-radius:12px;padding:15px 18px;margin-top:18px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.sum-ttl{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--gold-light);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:9px}
+.si label{font-size:.64rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);display:block;margin-bottom:2px}
+.si .a{font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:500}
+.a.assets{color:var(--green)}.a.liab{color:var(--red)}.a.net{color:var(--text)}.a.zakat{color:var(--gold-light);font-size:1.44rem}
+.nbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:.69rem;font-weight:700;letter-spacing:.5px;margin-bottom:10px}
+.nbadge.above{background:rgba(90,138,74,.2);color:var(--green);border:1px solid rgba(90,138,74,.28)}
+.nbadge.below{background:rgba(168,72,72,.2);color:var(--red);border:1px solid rgba(168,72,72,.28)}
+.pbar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:9px}
+.pfill{height:100%;background:linear-gradient(90deg,var(--gold-dark),var(--gold-light));border-radius:2px;transition:width .3s ease}
+.ssub{display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-dim);margin-top:4px;flex-wrap:wrap;gap:3px}
+
+/* modal */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(4px)}
+.moverlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border-gold);border-radius:12px;width:100%;max-width:660px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.mhdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mhdr h3{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--gold-light)}
+.mclose{background:transparent;border:none;color:var(--text-dim);font-size:1.2rem;cursor:pointer;padding:2px 5px;border-radius:4px}.mclose:hover{color:var(--text)}
+.mbody{padding:14px 18px;overflow-y:auto;flex:1}
+.spre{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:.71rem;color:var(--text-muted);line-height:1.85;white-space:pre-wrap;word-break:break-word;user-select:all}
+.mftr{padding:10px 18px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
+
+/* toast */
+.toast{position:fixed;bottom:15px;right:15px;background:var(--surface2);border:1px solid var(--border-gold);border-left:3px solid var(--gold);border-radius:8px;padding:9px 13px;font-size:.77rem;color:var(--text);box-shadow:0 8px 30px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:all .3s ease;z-index:999;max-width:270px;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+/* ── FOOTER ── */
+.site-footer{margin-top:32px;padding:18px 0 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center}
+.site-footer-links{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.site-footer a{color:var(--text-dim);text-decoration:none;font-size:.71rem;transition:color .15s}
+.site-footer a:hover{color:var(--gold-light)}
+.site-footer-copy{font-size:.68rem;color:var(--text-dim);line-height:1.6}
+.site-footer-privacy{font-size:.67rem;color:var(--text-dim);background:rgba(90,175,128,.06);border:1px solid rgba(90,175,128,.14);border-radius:5px;padding:4px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="h1">Zakat Calculator</div>
+    <div class="arabic">حساب الزكاة</div>
+    <div class="hsub">Free & open · Live exchange rates · Joint accounts · Real estate · Save/load JSON · Silver nisab · 2.5%</div>
+  </div>
+  <div class="hbtns">
+    <button class="btn btn-sum" onclick="openModal()">📋 Summary</button>
+    <button class="btn btn-out" onclick="loadJSON()">⬆ Load</button>
+    <button class="btn btn-gold" onclick="saveJSON()">⬇ Save JSON</button>
+    <button class="btn btn-red" onclick="resetAll()">↺ Reset</button>
+  </div>
+</header>
+
+<!-- INFO BANNER -->
+<div id="info-banner" style="background:rgba(200,168,75,.05);border:1px solid rgba(200,168,75,.13);border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:.72rem;color:var(--text-muted);line-height:1.6">
+  <span style="font-size:1rem;flex-shrink:0">ℹ️</span>
+  <div>
+    <strong style="color:var(--text)">Your data is never stored on any server.</strong> This calculator runs entirely in your browser. Use <strong>Save JSON</strong> to keep a copy on your device — your saved file includes a snapshot of exchange rates at the time of saving, so your calculation is preserved exactly as-is when you reload it. To use current live rates on a saved file, click <strong>↻ Refresh</strong> after loading.<br>
+    <strong style="color:var(--text)">Live rate disclaimer:</strong> Exchange rates and precious metal spot prices are fetched from a free public API and are indicative only. For an official Zakat calculation, use rates from a source you consider authoritative (your central bank, a trusted gold dealer, or your local Islamic finance authority) and enter them manually by clicking any rate field.
+  </div>
+  <button onclick="this.parentElement.style.display='none'" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px;flex-shrink:0;margin-left:auto">×</button>
+</div>
+
+<!-- NISAB -->
+<div class="nisab-bar">
+  <div class="nb"><label>Silver Nisab (595g)</label><div class="v" id="nsS">—</div><div class="s">Spot × 595g · used as threshold</div></div>
+  <div class="nb"><label>Gold Nisab (85g)</label><div class="v" id="nsG">—</div><div class="s">Spot × 85g · reference</div></div>
+  <div class="nb"><label>Standard</label><div class="v" style="color:var(--teal)">Silver</div><div class="s">Lower = more recipients benefit</div></div>
+  <div class="nb"><label>Rate</label><div class="v">2.5%</div><div class="s">Of net zakatable wealth</div></div>
+</div>
+
+<!-- HAWL -->
+<div class="hawl-row">
+  <label>Hawl Date:</label>
+  <input type="date" id="hawl-date" value="2026-03-01" oninput="recalc()">
+  <label style="margin-left:6px">Display Currency:</label>
+  <select id="base-currency-sel" onchange="setBaseCurrency(this.value)" style="background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:.79rem;padding:5px 8px;outline:none;cursor:pointer;transition:border-color .15s">
+    <option value="EUR" selected>EUR — Euro</option>
+    <option value="USD">USD — US Dollar</option>
+    <option value="GBP">GBP — Pound Sterling</option>
+    <option value="CHF">CHF — Swiss Franc</option>
+    <option value="QAR">QAR — Qatari Riyal</option>
+    <option value="SAR">SAR — Saudi Riyal</option>
+    <option value="AED">AED — UAE Dirham</option>
+    <option value="PKR">PKR — Pakistani Rupee</option>
+    <option value="INR">INR — Indian Rupee</option>
+    <option value="BDT">BDT — Bangladeshi Taka</option>
+    <option value="TRY">TRY — Turkish Lira</option>
+    <option value="CAD">CAD — Canadian Dollar</option>
+  </select>
+  <span class="hawl-desc">Snapshot of all wealth on this date. All inputs remain in their original currency — only totals and Zakat are displayed in your chosen currency.</span>
+</div>
+
+<!-- RATES PANEL -->
+<div class="rates-panel">
+  <div class="rates-hdr">
+    <div class="rates-hdr-l">
+      <div class="rates-ttl">Exchange Rates &amp; Spot Prices <span id="rate-basis-note" style="font-size:.63rem;color:var(--text-dim);font-weight:400;margin-left:4px">· values in EUR</span></div>
+      <div class="fetch-status">
+        <div class="sdot loading" id="sdot"></div>
+        <span id="spin-wrap"></span>
+        <span class="stext" id="stext">Loading…</span>
+      </div>
+      <span class="rts" id="rts"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px"><button class="btn btn-ref" id="btn-ref" onclick="fetchRates()" disabled>↻ Refresh</button><span id="refresh-note" style="font-size:.63rem;color:var(--text-dim)">Rates update once daily at midnight UTC</span></div>
+  </div>
+  <div class="rates-body">
+    <div class="rates-grid" id="rates-grid"></div>
+    <div class="rates-note">
+      <strong>Live rates</strong> are fetched automatically on page load from a free public API (no key required). Rate cards show the value in your chosen display currency (large number) and the canonical EUR rate (small, editable input below). Each card's source badge: <span style="color:var(--live)">■ LIVE</span> = fetched now, <span style="color:var(--manual)">■ MANUAL</span> = you edited it, <span style="color:var(--manual)">■ SNAPSHOT</span> = loaded from saved file, <span style="color:var(--err)">■ FALLBACK</span> = could not fetch. Edit the small EUR input on any card to override — it becomes MANUAL. Click "↻ Get live" to revert.
+    </div>
+  </div>
+</div>
+
+<!-- BANK ACCOUNTS -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-cash">€</div>
+    <div class="stitle">Bank Accounts & Cash</div>
+    <div class="sdesc">&nbsp;All balances on Hawl date · joint account support</div>
+    <div class="stotal" id="t-cash">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div class="dlist" id="list-cash"></div>
+    <button class="badd" onclick="addRow('cash')">＋ Add account</button>
+    <div class="note">
+      <strong>Include:</strong> personal current/savings accounts, business accounts, rent security deposits (Kaution — still your money, will return), and any significant cash on hand. All currencies convert to EUR automatically.<br><br>
+      <strong>Joint accounts:</strong> Toggle "Joint account" on any row and enter your ownership percentage. Only your share is counted. Your co-owner calculates their share independently in their own Zakat.
+    </div>
+    <div class="note purple" style="margin-top:7px">
+      <strong>Joint account example:</strong> Account shows €10,000. You own 50% → your zakatable share = €5,000. Your spouse includes their €5,000 in their own separate calculation. Zakat is a personal obligation — there is no "joint Zakat."
+    </div>
+  </div>
+</div>
+
+<!-- INVESTMENTS -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-inv">◈</div>
+    <div class="stitle">Investment Brokers & Portfolios</div>
+    <div class="sdesc">&nbsp;Total portfolio value + uninvested cash per broker</div>
+    <div class="stotal" id="t-invest">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div class="dlist" id="list-invest"></div>
+    <button class="badd" onclick="addRow('invest')">＋ Add broker / portfolio</button>
+    <div class="note info">
+      <strong>Simplified method (widely accepted):</strong> Enter the total current market value shown in your broker app — no need to list individual stocks or ETFs. Whether it holds index ETFs, sector funds, physical metal ETCs, or individual stocks — the full portfolio value is zakatable at 2.5%.<br><br>
+      <strong>Uninvested cash:</strong> Add as a separate line if shown separately in your app. Physical Gold/Silver ETCs are treated identically to physical metals held directly — same calculation, same rate.
+    </div>
+  </div>
+</div>
+
+<!-- PHYSICAL METALS -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-metal">⬡</div>
+    <div class="stitle">Physical Precious Metals</div>
+    <div class="sdesc">&nbsp;Weight in grams · auto-priced at live spot</div>
+    <div class="stotal" id="t-metals">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div class="dlist" id="list-metals"></div>
+    <button class="badd" onclick="addMetalRow()">＋ Add holding</button>
+    <div class="note">
+      <strong>Gold nisab (85g):</strong> Gold held alone below 85g may not meet the gold-only nisab. But if you hold silver, cash, or investments that together exceed the silver nisab, your gold is fully included.<br><br>
+      <strong>Silver nisab (595g):</strong> Lower threshold — used as the primary standard to maximise benefit to Zakat recipients.<br><br>
+      <strong>Newly acquired metals:</strong> If you were already above nisab when acquired, the metals join your existing Hawl. If metals are your first zakatable asset, Hawl starts from acquisition date.<br><br>
+      <strong>Copper (and other industrial metals):</strong> Copper has no dedicated nisab in Islamic law — it is not a monetary metal (naqdayn). Physical copper bars/ingots are treated as <em>trade goods (عروض التجارة)</em> and are zakatable only if held with intent to sell. Copper used personally (cookware, tools) is not zakatable. Enter spot price manually: take the LME price in USD per metric ton, divide by 1,000,000 to get USD per gram, then multiply by your USD→EUR rate to get EUR per gram.
+    </div>
+  </div>
+</div>
+
+<!-- CRYPTOCURRENCY -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-crypto">₿</div>
+    <div class="stitle">Cryptocurrency</div>
+    <div class="sdesc">&nbsp;Current market value — past losses do not reduce Zakat</div>
+    <div class="stotal" id="t-crypto">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div class="dlist" id="list-crypto"></div>
+    <button class="badd" onclick="addRow('crypto')">＋ Add wallet / exchange</button>
+    <div class="note warn">
+      <strong>Current value only:</strong> If you invested €5,000 and it is now worth €800, Zakat is on €800. Past losses cannot be deducted from other zakatable assets.<br><br>
+      <strong>Stablecoins (USDC, USDT, etc.):</strong> Treated as cash — fully zakatable at face value. Include all exchanges, hot wallets, cold wallets, and earn/staking balances.
+    </div>
+  </div>
+</div>
+
+<!-- REAL ESTATE -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-re">🏠</div>
+    <div class="stitle">Real Estate</div>
+    <div class="sdesc">&nbsp;Islamic ruling varies by intent — calculator guides you</div>
+    <div class="stotal" id="t-re">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div id="list-re"></div>
+    <button class="badd" onclick="addRERow()">＋ Add property</button>
+    <div class="note blue" style="margin-top:10px">
+      <strong>Real estate Zakat — the four cases:</strong><br><br>
+      🔴 <strong>Rental property (long-term hold):</strong> The property itself is NOT zakatable. Only the rental income you actually receive and hold as cash is zakatable (as part of your bank account balance).<br><br>
+      🟢 <strong>Property for resale / trading (flipping):</strong> Market value IS zakatable at 2.5%. Intent to sell must be present from the time of purchase.<br><br>
+      🟡 <strong>Under construction / not yet in your possession:</strong> NOT zakatable until you receive the keys and take possession.<br><br>
+      🔵 <strong>Personal residence:</strong> NOT zakatable — a home you live in is a necessity, not zakatable wealth.<br><br>
+      <strong>Changed your mind?</strong> If you initially bought to sell but switched to rental intent (or vice versa), the ruling changes from that point forward.
+    </div>
+  </div>
+</div>
+
+<!-- LIABILITIES -->
+<div class="section">
+  <div class="shdr" onclick="toggle(this)">
+    <div class="sicon ic-liab">−</div>
+    <div class="stitle">Liabilities & Deductions</div>
+    <div class="sdesc">&nbsp;Subtracted from zakatable wealth</div>
+    <div class="stotal neg" id="t-liab">€ 0.00</div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="sbody">
+    <div class="dlist" id="list-liab"></div>
+    <button class="badd" onclick="addRow('liab')">＋ Add liability</button>
+    <div class="note warn">
+      <strong>Include (currently due):</strong> Tax bills payable this year, credit card balance, personal loans currently due, next instalment payment on a debt.<br><br>
+      <strong>Exclude:</strong> Future mortgage instalments not yet due. The widely-accepted position is to deduct only what is <em>immediately payable</em> — not the full outstanding balance of a long-term loan. If you owe €200,000 on a mortgage but only €1,200 is due this month, deduct €1,200.<br><br>
+      <strong>Rental property financing:</strong> If a property is zakatable (e.g. for resale), the loan secured against it can be deducted from that property's value.
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="sum-ttl">
+    <span>⬡ Zakat Summary</span>
+    <button class="btn btn-sum" style="font-size:.67rem;padding:5px 9px" onclick="openModal()">📋 Copy Summary</button>
+  </div>
+  <div id="nbadge" class="nbadge above">✓ Above Nisab — Zakat is Obligatory</div>
+  <div class="sum-grid">
+    <div class="si"><label>Total Assets</label><div class="a assets" id="sa">€ 0.00</div></div>
+    <div class="si"><label>Liabilities</label><div class="a liab" id="sl">€ 0.00</div></div>
+    <div class="si"><label>Net Zakatable</label><div class="a net" id="sn">€ 0.00</div></div>
+    <div class="si"><label>Zakat Due (2.5%)</label><div class="a zakat" id="sz">€ 0.00</div></div>
+  </div>
+  <div style="font-size:.7rem;color:var(--text-dim)">
+    Monthly: <span id="sm" style="color:var(--gold);font-family:'DM Mono',monospace">€ 0.00</span>
+    &nbsp;·&nbsp; Quarterly: <span id="sq" style="color:var(--gold);font-family:'DM Mono',monospace">€ 0.00</span>
+  </div>
+  <div class="pbar"><div class="pfill" id="pf" style="width:0%"></div></div>
+  <div class="ssub">
+    <span>Silver nisab: <span id="ns-show" style="color:var(--text-muted)">—</span></span>
+    <span id="ns-mult">—</span>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="site-footer-privacy">&#x1F512; Your data never leaves your browser — no server, no tracking, no account</div>
+  <div class="site-footer-links">
+    <a href="https://github.com/imusmanmalik/zakat-calculator" target="_blank" rel="noopener">&#x2A21; GitHub</a>
+    <span style="color:var(--border);font-size:.7rem">|</span>
+    <a href="https://github.com/imusmanmalik/zakat-calculator/releases" target="_blank" rel="noopener">Releases</a>
+    <span style="color:var(--border);font-size:.7rem">|</span>
+    <a href="https://github.com/imusmanmalik/zakat-calculator/issues" target="_blank" rel="noopener">Report an Issue</a>
+    <span style="color:var(--border);font-size:.7rem">|</span>
+    <a href="https://github.com/imusmanmalik/zakat-calculator/blob/main/LICENSE" target="_blank" rel="noopener">Apache 2.0 License</a>
+  </div>
+  <div class="site-footer-copy">
+    &copy; 2026 <a href="https://github.com/imusmanmalik" target="_blank" rel="noopener">Usman Malik</a>
+    &nbsp;&mdash;&nbsp;
+    Free &amp; open-source. Not a fatwa. Rates are indicative only.
+  </div>
+</footer>
+
+</div>
+
+<!-- MODAL -->
+<div class="moverlay hidden" id="modal">
+  <div class="modal">
+    <div class="mhdr">
+      <h3>📋 Zakat Summary — Copy to Notes</h3>
+      <button class="mclose" onclick="closeModal()">×</button>
+    </div>
+    <div class="mbody"><div class="spre" id="spre"></div></div>
+    <div class="mftr">
+      <button class="btn btn-out" onclick="closeModal()">Close</button>
+      <button class="btn btn-gold" onclick="copySummary()">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="jloader" accept=".json" style="display:none" onchange="handleLoad(event)">
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// RATE DEFINITIONS
+// ══════════════════════════════════════════════════════════════
+const RDEFS = [
+  {key:'gold',   pair:'XAU → EUR', note:'per gram',  fallback:139,    isSpot:true,  decimals:4},
+  {key:'silver', pair:'XAG → EUR', note:'per gram',  fallback:2.14,   isSpot:true,  decimals:5},
+  {key:'usd',    pair:'USD → EUR', note:'per 1 USD', fallback:0.85,   isSpot:false, decimals:5},
+  {key:'gbp',    pair:'GBP → EUR', note:'per 1 GBP', fallback:1.14,   isSpot:false, decimals:5},
+  {key:'pkr',    pair:'PKR → EUR', note:'per 1 PKR', fallback:0.003,  isSpot:false, decimals:6},
+  {key:'chf',    pair:'CHF → EUR', note:'per 1 CHF', fallback:1.09,   isSpot:false, decimals:5},
+  {key:'sar',    pair:'SAR → EUR', note:'per 1 SAR', fallback:0.227,  isSpot:false, decimals:5},
+  {key:'aed',    pair:'AED → EUR', note:'per 1 AED', fallback:0.232,  isSpot:false, decimals:5},
+  {key:'cad',    pair:'CAD → EUR', note:'per 1 CAD', fallback:0.621,  isSpot:false, decimals:5},
+  {key:'try',    pair:'TRY → EUR', note:'per 1 TRY', fallback:0.0194, isSpot:false, decimals:6},
+  {key:'inr',    pair:'INR → EUR', note:'per 1 INR', fallback:0.0093, isSpot:false, decimals:6},
+  {key:'bdt',    pair:'BDT → EUR', note:'per 1 BDT', fallback:0.00695,isSpot:false, decimals:6},
+  {key:'qar',    pair:'QAR → EUR', note:'per 1 QAR', fallback:0.234,  isSpot:false, decimals:5},
+  {key:'platinum', pair:'XPT → EUR', note:'per gram',   fallback:56.6,   isSpot:true,  decimals:4},
+  {key:'palladium',pair:'XPD → EUR', note:'per gram',   fallback:46.0,   isSpot:true,  decimals:4},
+  {key:'copper',   pair:'XCU → EUR', note:'per gram',   fallback:0.0081, isSpot:true,  decimals:6, noLiveFetch:true},
+];
+
+const rates={}, overrides={};
+RDEFS.forEach(d=>{ rates[d.key]={value:d.fallback, source: d.noLiveFetch?'manual':'fallback', live:null} });
+
+// ══════════════════════════════════════════════════════════════
+// FETCH — uses fawazahmed0 currency API (free, CDN, no key)
+// ══════════════════════════════════════════════════════════════
+async function fetchRates(){
+  setStatus('loading','Fetching live rates…');
+  const btn=document.getElementById('btn-ref');
+  btn.disabled=true;
+
+  const ENDPOINTS=[
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies',
+    'https://latest.currency-api.pages.dev/v1/currencies',
+  ];
+
+  // Manual timeout — AbortSignal.timeout() not supported in all browsers (Safari<16)
+  async function fetchWithTimeout(url, ms){
+    return new Promise((resolve, reject)=>{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>{ ctrl.abort(); reject(new Error('timeout')); }, ms||10000);
+      fetch(url,{signal:ctrl.signal})
+        .then(r=>{ clearTimeout(tid); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(resolve)
+        .catch(e=>{ clearTimeout(tid); reject(e); });
+    });
+  }
+
+  // Try each endpoint in sequence — return null if all fail
+  async function safeFetch(path){
+    for(const base of ENDPOINTS){
+      try{ return await fetchWithTimeout(base+path, 10000); }
+      catch(e){ /* try next endpoint */ }
+    }
+    return null; // all endpoints failed — caller handles gracefully
+  }
+
+  // Fetch all three independently — one failing won't block the others
+  const [eurData, xauData, xagData] = await Promise.all([
+    safeFetch('/eur.json'),
+    safeFetch('/xau.json'),
+    safeFetch('/xag.json'),
+  ]);
+
+  let anyLive = false;
+
+  // FX rates — eurData.eur[code] = "units of code per 1 EUR", invert for "EUR per 1 unit"
+  if(eurData && eurData.eur){
+    const er=eurData.eur;
+    ['usd','gbp','pkr','chf','sar','aed','cad','try','inr','bdt','qar'].forEach(k=>{
+      if(er[k] && er[k]>0){
+        const v=+(1/er[k]).toFixed(6);
+        if(!overrides[k]){ rates[k]={value:v,source:'live',live:v}; }
+        else{ rates[k].live=v; }
+        anyLive=true;
+      }
+    });
+  }
+
+  // Gold — xauData.xau.eur = EUR per troy oz → divide by 31.1035 for EUR per gram
+  if(xauData && xauData.xau && xauData.xau.eur){
+    const v=+(xauData.xau.eur/31.1035).toFixed(4);
+    if(!overrides['gold']){ rates['gold']={value:v,source:'live',live:v}; }
+    else{ rates['gold'].live=v; }
+    anyLive=true;
+  }
+
+  // Silver — xagData.xag.eur = EUR per troy oz → divide by 31.1035 for EUR per gram
+  if(xagData && xagData.xag && xagData.xag.eur){
+    const v=+(xagData.xag.eur/31.1035).toFixed(5);
+    if(!overrides['silver']){ rates['silver']={value:v,source:'live',live:v}; }
+    else{ rates['silver'].live=v; }
+    anyLive=true;
+  }
+
+  // Platinum (XPT) and Palladium (XPD) — same pattern as gold/silver
+  const [xptData, xpdData] = await Promise.all([
+    safeFetch('/xpt.json'),
+    safeFetch('/xpd.json'),
+  ]);
+  if(xptData && xptData.xpt && xptData.xpt.eur){
+    const v=+(xptData.xpt.eur/31.1035).toFixed(4);
+    if(!overrides['platinum']){ rates['platinum']={value:v,source:'live',live:v}; }
+    else{ rates['platinum'].live=v; }
+    anyLive=true;
+  }
+  if(xpdData && xpdData.xpd && xpdData.xpd.eur){
+    const v=+(xpdData.xpd.eur/31.1035).toFixed(4);
+    if(!overrides['palladium']){ rates['palladium']={value:v,source:'live',live:v}; }
+    else{ rates['palladium'].live=v; }
+    anyLive=true;
+  }
+
+  // Mark noLiveFetch items as 'manual' (not fallback) — they're expected to be manual
+  RDEFS.filter(d=>d.noLiveFetch).forEach(d=>{ if(rates[d.key].source==='fallback') rates[d.key].source='manual'; });
+
+  if(anyLive){
+    const now=new Date();
+    document.getElementById('rts').textContent=
+      'Updated '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
+      ' · '+now.toLocaleDateString([],{day:'numeric',month:'short'});
+    setStatus('live','Live rates loaded');
+    showToast('✓ Exchange rates updated');
+  } else {
+    setStatus('error','Could not reach rate servers — using fallback values. Edit any field manually.');
+    RDEFS.forEach(d=>{ if(!overrides[d.key]) rates[d.key].source='fallback'; });
+  }
+
+  renderRates(); recalc();
+  btn.disabled=false;
+}
+
+function setStatus(s,text){
+  const dot=document.getElementById('sdot');
+  const sw=document.getElementById('spin-wrap');
+  const st=document.getElementById('stext');
+  // snapshot uses gold/manual color
+  dot.className='sdot '+(s==='snapshot'?'manual':s);
+  st.className='stext '+(s==='live'?'live':s==='error'?'error':'');
+  st.textContent=text;
+  if(s==='loading'){
+    dot.style.display='none';
+    sw.innerHTML='<div class="spinner" style="display:inline-block;margin-right:4px"></div>';
+  } else {
+    dot.style.display='';
+    sw.innerHTML='';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER RATES GRID
+// ══════════════════════════════════════════════════════════════
+function rateDisplayVal(key){
+  // Convert canonical EUR-per-unit rate to base-currency-per-unit for display
+  const eurVal = rates[key]?.value || RDEFS.find(d=>d.key===key)?.fallback || 1;
+  if(baseCurrency==='EUR') return eurVal;
+  const baseEurPerUnit = getR(baseCurrency.toLowerCase());
+  return baseEurPerUnit > 0 ? eurVal / baseEurPerUnit : eurVal;
+}
+
+function rateDisplayDecimals(key){
+  // More decimals for small-valued currencies (PKR, INR, etc.) in base display
+  const v = rateDisplayVal(key);
+  if(v >= 1000) return 2;
+  if(v >= 100) return 3;
+  if(v >= 1) return 4;
+  if(v >= 0.01) return 5;
+  return 6;
+}
+
+function renderRates(){
+  const g=document.getElementById('rates-grid');
+  g.innerHTML='';
+  const isEurBase = baseCurrency==='EUR';
+  RDEFS.forEach(d=>{
+    const r=rates[d.key];
+    const src=overrides[d.key]?'manual':r.source;
+    const card=document.createElement('div');
+    card.className=`rcard ${src==='snapshot'?'manual':src}`;
+    card.id='rc-'+d.key;
+    const canRestore = ((overrides[d.key]&&r.live) || (src==='snapshot')) && !d.noLiveFetch;
+    const restoreHtml=canRestore
+      ?`<button class="restore-btn" onclick="refreshOneLive('${d.key}')">↻ Get live</button>`:'';
+    const nolive = !!d.noLiveFetch;
+    const liveHint=overrides[d.key]&&r.live?`Live (EUR): ${r.live}`
+      :nolive?'No live feed — enter LME/COMEX spot ÷ 1,000,000 × EUR rate'
+      :src==='fallback'?'Enter value in EUR'
+      :src==='snapshot'?'Snapshot — click ↻ for live'
+      :'';
+    const badgeCls = src==='live'?'live':src==='manual'||src==='snapshot'?'manual':'fallback';
+    const badgeTxt = src.toUpperCase();
+    const inputCls = src==='live'?'live':src==='manual'||src==='snapshot'?'manual':'';
+
+    // Pair label: always show → base currency for intuitive reading
+    const baseLabel = isEurBase ? 'EUR' : baseCurrency;
+    const isSpot = d.isSpot;
+    const metalSuffix = isSpot ? ' (per gram)' : '';
+    const keyLabel = d.key==='gold'?'XAU' : d.key==='silver'?'XAG'
+                   : d.key==='platinum'?'XPT' : d.key==='palladium'?'XPD'
+                   : d.key.toUpperCase();
+    const pairLabel = keyLabel + ' → ' + baseLabel + metalSuffix;
+
+    // Display value in base currency
+    const dispVal = rateDisplayVal(d.key);
+    const dispDecimals = rateDisplayDecimals(d.key);
+    const dispFormatted = dispVal.toFixed(dispDecimals).replace('.', ',');
+
+    // Sub-note: show EUR value when base != EUR, so user can see both
+    const eurSubNote = !isEurBase
+      ? `<span style="font-size:.6rem;color:var(--text-dim)">= ${r.value} EUR${isSpot?' / gram':''}</span>`
+      : '';
+
+    card.innerHTML=`
+      <div class="rcard-top">
+        <span class="rpair">${pairLabel}</span>
+        <span class="rbadge ${badgeCls}" id="rbadge-${d.key}">${badgeTxt}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin:3px 0">
+        <span class="rval ${inputCls}" id="rdisplay-${d.key}" style="font-size:.92rem;font-weight:500;font-family:'DM Mono',monospace;border-bottom:none;background:transparent;color:inherit;cursor:default">${dispFormatted}</span>
+        ${eurSubNote}
+      </div>
+      <input class="rval" type="number" id="rv-${d.key}"
+        value="${r.value}" step="${d.isSpot?'0.0001':'0.00001'}" min="0"
+        style="font-size:.72rem;color:var(--text-dim);border-bottom-color:var(--border);margin-top:2px"
+        placeholder="EUR value" title="Enter rate as EUR per 1 ${keyLabel}${isSpot?' per gram':''}"
+        oninput="onRateEdit('${d.key}',this.value)">
+      <div class="rcard-bot" style="margin-top:3px">
+        <span class="rnote" id="rnote-${d.key}">EUR value${liveHint?' · '+liveHint:''}</span>
+        ${restoreHtml}
+      </div>
+    `;
+    g.appendChild(card);
+  });
+}
+
+function onRateEdit(key,val){
+  const v=parseFloat(val);
+  if(isNaN(v)||v<=0) return;
+  rates[key].value=v; rates[key].source='manual'; overrides[key]=true;
+  const card=document.getElementById('rc-'+key);
+  if(card){
+    card.className='rcard manual';
+    const badge=document.getElementById('rbadge-'+key);
+    if(badge){badge.className='rbadge manual';badge.textContent='MANUAL';}
+    const inp=document.getElementById('rv-'+key);
+    if(inp) inp.className='rval manual';
+    const note=document.getElementById('rnote-'+key);
+    const d=RDEFS.find(x=>x.key===key);
+    if(note&&rates[key].live) note.textContent=d.note+' · Live: '+rates[key].live;
+    let rb=card.querySelector('.restore-btn');
+    if(!rb&&rates[key].live){
+      rb=document.createElement('button');rb.className='restore-btn';
+      rb.textContent='Restore live';rb.onclick=()=>restoreLive(key);
+      card.querySelector('.rcard-bot').appendChild(rb);
+    }
+  }
+  recalc();
+}
+
+function restoreLive(key){
+  if(rates[key].live){
+    rates[key].value=rates[key].live; rates[key].source='live';
+    delete overrides[key]; renderRates(); recalc();
+  } else { refreshOneLive(key); }
+}
+
+function getR(key){ return rates[key]?.value||RDEFS.find(d=>d.key===key)?.fallback||1; }
+
+// ══════════════════════════════════════════════════════════════
+// STATE & HELPERS
+// ══════════════════════════════════════════════════════════════
+const CURRENCIES=['EUR','USD','PKR','GBP','CHF','SAR','AED','CAD','TRY','INR','BDT','QAR'];
+const BASE_CURRENCIES=['EUR','USD','GBP','CHF','QAR','SAR','AED','PKR','INR','BDT','TRY','CAD'];
+let baseCurrency='EUR';
+
+// Convert EUR amount to display currency
+function inBase(eurVal){
+  if(baseCurrency==='EUR') return eurVal;
+  const k=baseCurrency.toLowerCase();
+  // eurRates[k] = units of k per 1 EUR (from the API EUR base)
+  // We store the inverse (EUR per unit), so to go EUR -> base: divide by rate
+  const rateEurPerUnit = getR(k);
+  return rateEurPerUnit > 0 ? eurVal / rateEurPerUnit : eurVal;
+}
+function fmtB(eurVal){
+  const v=inBase(eurVal);
+  const sym=BASE_CURRENCY_SYMS[baseCurrency]||baseCurrency+' ';
+  return sym+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function fmtBP(eurVal){
+  const v=inBase(eurVal);
+  const sym=BASE_CURRENCY_SYMS[baseCurrency]||baseCurrency+' ';
+  return sym+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+const BASE_CURRENCY_SYMS={EUR:'€ ',USD:'$ ',GBP:'£ ',CHF:'CHF ',QAR:'QAR ',SAR:'SAR ',AED:'AED ',PKR:'₨ ',INR:'₹ ',BDT:'৳ ',TRY:'₺ ',CAD:'CA$ '};
+const METALS=['Gold','Silver','Platinum','Palladium','Copper'];
+const RE_TYPES=[
+  {val:'rental',     label:'Rental property (long-term hold)', zakatable:false, color:'red'},
+  {val:'resale',     label:'For resale / trading (flip)',       zakatable:true,  color:'green'},
+  {val:'pending',    label:'Under construction / not possessed',zakatable:false, color:'red'},
+  {val:'residence',  label:'Personal residence',                zakatable:false, color:'red'},
+  {val:'mixed',      label:'Mixed / unsure',                    zakatable:false, color:'yellow'},
+];
+const RE_RULINGS={
+  rental:   {badge:'not-zakatable', badgeTxt:'Not Zakatable', color:'red',   text:'<strong>Property itself: NOT zakatable.</strong> Rental property held for income is a productive fixed asset, not trading stock. However, rental income you receive and hold as cash is zakatable — include it in your bank accounts section.'},
+  resale:   {badge:'zakatable',     badgeTxt:'Zakatable',     color:'green', text:'<strong>Market value IS zakatable at 2.5%.</strong> Property purchased with the intent to sell counts as trading stock. Enter the current market value. Any outstanding loan specifically against this property may be deducted in the Liabilities section.'},
+  pending:  {badge:'not-zakatable', badgeTxt:'Not Zakatable', color:'red',   text:'<strong>NOT zakatable until you take possession.</strong> Property under construction or where you have not yet received the keys is not in your ownership in the full legal sense. Once you receive possession, re-assess based on your intent (rental or resale).'},
+  residence:{badge:'not-zakatable', badgeTxt:'Not Zakatable', color:'red',   text:'<strong>Your home is NOT zakatable.</strong> A personal residence is considered a necessity (حاجة أصلية) in Islamic jurisprudence and is exempt. This applies regardless of its value.'},
+  mixed:    {badge:'info',          badgeTxt:'Consult Scholar',color:'yellow',text:'<strong>Intent determines the ruling.</strong> If you are unsure whether your property is for rental or resale, the ruling follows your dominant intent. If intent has changed since purchase, the ruling changes from that point. Consider consulting a scholar for your specific situation.'},
+};
+
+let rc=0; const uid=()=>'r'+(++rc);
+const state={cash:[],invest:[],metals:[],crypto:[],re:[],liab:[]};
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function fmt(n){return'€\u202F'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function fmtP(n){return'€ '+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function curOpts(sel){return CURRENCIES.map(c=>`<option value="${c}"${c===sel?' selected':''}>${c}</option>`).join('')}
+function metalOpts(sel){return METALS.map(m=>`<option value="${m}"${m===sel?' selected':''}>${m}</option>`).join('')}
+function reTypeOpts(sel){return RE_TYPES.map(t=>`<option value="${t.val}"${t.val===sel?' selected':''}>${t.label}</option>`).join('')}
+
+function toEUR(amount,currency){
+  const a=parseFloat(amount)||0;
+  return a*getR(currency.toLowerCase());
+}
+function metalToEUR(row){
+  const g=parseFloat(row.grams)||0;
+  return g*getR(row.metalType.toLowerCase());
+}
+function getEff(row){
+  const raw=toEUR(row.amount,row.currency);
+  return row.joint?raw*((parseFloat(row.jointPct)||100)/100):raw;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ROW RENDERING
+// ══════════════════════════════════════════════════════════════
+function renderRow(sec,row){
+  const el=document.createElement('div');
+  el.className='drow'+(row.joint?' jt':''); el.id='row-'+row.id;
+  const pct=parseFloat(row.jointPct)||100;
+  el.innerHTML=`
+    <div class="row-main">
+      <div class="lbl-area">
+        <input type="text" placeholder="Label (e.g. HSBC Current Account)" value="${esc(row.label)}"
+          oninput="upd('${sec}','${row.id}','label',this.value)">
+        <div class="jt-toggle">
+          <input type="checkbox" id="jt-${row.id}" ${row.joint?'checked':''}
+            onchange="toggleJT('${sec}','${row.id}',this.checked)">
+          <label for="jt-${row.id}">Joint account</label>
+        </div>
+        ${row.joint?`
+        <div class="jt-extra">
+          <div class="jt-pct-g">My share:
+            <input class="jt-pct-inp" type="number" min="1" max="100" step="1" value="${pct}"
+              oninput="upd('${sec}','${row.id}','jointPct',this.value);recalc()">%
+          </div>
+          <span class="jt-disp" id="jd-${row.id}">—</span>
+          <span class="jt-info">Co-owner calculates their share separately</span>
+        </div>`:''}
+      </div>
+      <div class="awrap">
+        <select class="csel" onchange="upd('${sec}','${row.id}','currency',this.value);recalc()">${curOpts(row.currency)}</select>
+        <input class="anum" type="number" placeholder="0.00" value="${row.amount||''}" step="0.01" min="0"
+          oninput="upd('${sec}','${row.id}','amount',this.value);recalc()">
+      </div>
+      <div class="dcmp${row.joint?' jc':''}" id="cmp-${row.id}">—</div>
+      <button class="brm" onclick="rmRow('${sec}','${row.id}')">×</button>
+    </div>`;
+  return el;
+}
+
+function renderMetal(row){
+  const el=document.createElement('div');
+  el.className='mrow'; el.id='row-'+row.id;
+  el.innerHTML=`
+    <input type="text" placeholder="Label (e.g. Physical Gold — bank vault)" value="${esc(row.label)}"
+      oninput="updM('${row.id}','label',this.value)">
+    <select class="msel" onchange="updM('${row.id}','metalType',this.value);recalc()">${metalOpts(row.metalType)}</select>
+    <div class="gwrap">
+      <span class="gbadge">grams</span>
+      <input type="number" placeholder="0" value="${row.grams||''}" step="0.01" min="0"
+        oninput="updM('${row.id}','grams',this.value);recalc()">
+    </div>
+    <div class="dcmp" id="cmp-${row.id}">—</div>
+    <button class="brm" onclick="rmMetal('${row.id}')">×</button>`;
+  return el;
+}
+
+function renderRERow(row){
+  const ruling=RE_RULINGS[row.reType]||RE_RULINGS.mixed;
+  const typeObj=RE_TYPES.find(t=>t.val===row.reType)||RE_TYPES[0];
+  const isZakatable=typeObj.zakatable;
+  const el=document.createElement('div');
+  el.className='re-row'; el.id='row-'+row.id;
+  el.innerHTML=`
+    <div class="re-top">
+      <div class="re-lbl">
+        <input type="text" placeholder="Property label (e.g. Apartment — Berlin Mitte)" value="${esc(row.label)}"
+          oninput="updRE('${row.id}','label',this.value)">
+        <div class="re-type-row">
+          <span class="re-type-label">Intent / status:</span>
+          <select class="re-type-sel" onchange="updRE('${row.id}','reType',this.value);reRenderRow('${row.id}');recalc()">
+            ${reTypeOpts(row.reType)}
+          </select>
+          <span class="re-status-badge ${ruling.badge}">${ruling.badgeTxt}</span>
+        </div>
+      </div>
+      <button class="brm" onclick="rmRE('${row.id}')">×</button>
+    </div>
+    <div class="re-fields">
+      <div class="re-field">
+        <label>Current market value</label>
+        <div class="re-field-input">
+          <span class="re-field-cur">EUR</span>
+          <input type="number" placeholder="0" value="${row.marketValue||''}" step="100"
+            oninput="updRE('${row.id}','marketValue',this.value);recalc()">
+        </div>
+      </div>
+      <div class="re-field">
+        <label>Rental income received (annual)</label>
+        <div class="re-field-input">
+          <span class="re-field-cur">EUR</span>
+          <input type="number" placeholder="0" value="${row.rentalIncome||''}" step="100"
+            title="For rental properties — actual cash received. Include this in bank accounts, not here."
+            oninput="updRE('${row.id}','rentalIncome',this.value);recalc()">
+        </div>
+      </div>
+    </div>
+    <div class="re-ruling ${ruling.color}">${ruling.text}
+      ${row.rentalIncome&&parseFloat(row.rentalIncome)>0&&!isZakatable?
+        `<br><br>⚠️ You have entered rental income of ${fmtB(parseFloat(row.rentalIncome))}. <strong>Add this cash to your Bank Accounts section</strong> — do not include it here.`
+        :''}
+    </div>
+    <div class="re-contribution" id="re-cmp-${row.id}">
+      ${isZakatable&&row.marketValue?fmtB(parseFloat(row.marketValue)||0)+' → Zakat: '+fmtB((parseFloat(row.marketValue)||0)*.025):'Not included in Zakat total'}
+    </div>
+  `;
+  return el;
+}
+
+function reRenderRow(id){
+  const row=state.re.find(r=>r.id===id); if(!row) return;
+  const el=document.getElementById('row-'+id);
+  if(el) el.replaceWith(renderRERow(row));
+}
+
+function renderList(sec){
+  const list=document.getElementById('list-'+sec);
+  list.innerHTML='';
+  state[sec].forEach(r=>list.appendChild(renderRow(sec,r)));
+}
+function renderMetals(){
+  const list=document.getElementById('list-metals');
+  list.innerHTML='';
+  state.metals.forEach(r=>list.appendChild(renderMetal(r)));
+}
+function renderRE(){
+  const list=document.getElementById('list-re');
+  list.innerHTML='';
+  state.re.forEach(r=>list.appendChild(renderRERow(r)));
+  // Append the add button will be done by renderAll
+}
+function renderAll(){
+  ['cash','invest','crypto','liab'].forEach(renderList);
+  renderMetals(); renderRE();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ROW MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+function addRow(sec,d={}){
+  const r={id:uid(),label:d.label||'',amount:d.amount||'',currency:d.currency||'EUR',joint:d.joint||false,jointPct:d.jointPct||100};
+  state[sec].push(r);
+  document.getElementById('list-'+sec).appendChild(renderRow(sec,r));
+  recalc();
+}
+function addMetalRow(d={}){
+  const r={id:uid(),label:d.label||'',metalType:d.metalType||'Gold',grams:d.grams||''};
+  state.metals.push(r);
+  document.getElementById('list-metals').appendChild(renderMetal(r));
+  recalc();
+}
+function addRERow(d={}){
+  const r={id:uid(),label:d.label||'',reType:d.reType||'rental',marketValue:d.marketValue||'',rentalIncome:d.rentalIncome||''};
+  state.re.push(r);
+  document.getElementById('list-re').appendChild(renderRERow(r));
+  recalc();
+}
+function rmRow(sec,id){state[sec]=state[sec].filter(r=>r.id!==id);document.getElementById('row-'+id)?.remove();recalc();}
+function rmMetal(id){state.metals=state.metals.filter(r=>r.id!==id);document.getElementById('row-'+id)?.remove();recalc();}
+function rmRE(id){state.re=state.re.filter(r=>r.id!==id);document.getElementById('row-'+id)?.remove();recalc();}
+function upd(sec,id,f,v){const r=state[sec].find(r=>r.id===id);if(r)r[f]=v;}
+function updM(id,f,v){const r=state.metals.find(r=>r.id===id);if(r)r[f]=v;}
+function updRE(id,f,v){const r=state.re.find(r=>r.id===id);if(r)r[f]=v;}
+function toggleJT(sec,id,checked){
+  const r=state[sec].find(r=>r.id===id);
+  if(r){r.joint=checked;if(checked&&!r.jointPct)r.jointPct=50;}
+  document.getElementById('row-'+id)?.replaceWith(renderRow(sec,r));
+  recalc();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CALCULATION
+// ══════════════════════════════════════════════════════════════
+function sumSec(sec){
+  let t=0;
+  state[sec].forEach(row=>{
+    const raw=toEUR(row.amount,row.currency), eff=getEff(row);
+    t+=eff;
+    const el=document.getElementById('cmp-'+row.id);
+    if(el){el.textContent=eff>0?fmtB(eff):'—';el.className='dcmp'+(row.joint?' jc':'');}
+    const jd=document.getElementById('jd-'+row.id);
+    if(jd&&row.joint){
+      const pct=parseFloat(row.jointPct)||100;
+      jd.textContent=`Full: ${fmtB(raw)} → Your ${pct}%: ${fmtB(eff)}`;
+    }
+  });
+  return t;
+}
+function sumMetals(){
+  let t=0;
+  state.metals.forEach(row=>{
+    const v=metalToEUR(row); t+=v;
+    const el=document.getElementById('cmp-'+row.id);
+    if(el) el.textContent=v>0?fmtB(v):'—';
+  });
+  return t;
+}
+function sumRE(){
+  let t=0;
+  state.re.forEach(row=>{
+    const typeObj=RE_TYPES.find(x=>x.val===row.reType)||RE_TYPES[0];
+    const v=typeObj.zakatable?(parseFloat(row.marketValue)||0):0;
+    t+=v;
+    const el=document.getElementById('re-cmp-'+row.id);
+    if(el){
+      el.textContent=typeObj.zakatable&&v>0
+        ?fmtB(v)+' → Zakat: '+fmtB(v*.025)
+        :'Not included in Zakat total';
+    }
+  });
+  return t;
+}
+
+function recalc(){
+  const rG=getR('gold'), rS=getR('silver');
+  const nsS=595*rS, nsG=85*rG;
+  document.getElementById('nsS').textContent=fmtB(nsS);
+  document.getElementById('nsG').textContent=fmtB(nsG);
+
+  const cash=sumSec('cash'), invest=sumSec('invest'), metals=sumMetals();
+  const crypto=sumSec('crypto'), re=sumRE(), liab=sumSec('liab');
+
+  document.getElementById('t-cash').textContent=fmtB(cash);
+  document.getElementById('t-invest').textContent=fmtB(invest);
+  document.getElementById('t-metals').textContent=fmtB(metals);
+  document.getElementById('t-crypto').textContent=fmtB(crypto);
+  document.getElementById('t-re').textContent=fmtB(re);
+  document.getElementById('t-liab').textContent=fmtB(liab);
+
+  const assets=cash+invest+metals+crypto+re;
+  const net=Math.max(0,assets-liab), zakat=net*.025;
+  document.getElementById('sa').textContent=fmtB(assets);
+  document.getElementById('sl').textContent=fmtB(liab);
+  document.getElementById('sn').textContent=fmtB(net);
+  document.getElementById('sz').textContent=fmtB(zakat);
+  document.getElementById('sm').textContent=fmtB(zakat/12);
+  document.getElementById('sq').textContent=fmtB(zakat/4);
+  document.getElementById('ns-show').textContent=fmtB(nsS)+' (595g silver)';
+
+  const pct=Math.min((net/nsS)*100,100);
+  document.getElementById('pf').style.width=pct+'%';
+  const badge=document.getElementById('nbadge');
+  if(net>=nsS){
+    badge.className='nbadge above'; badge.textContent='✓ Above Nisab — Zakat is Obligatory';
+    document.getElementById('ns-mult').textContent=(net/nsS).toFixed(1)+'× above nisab';
+  } else {
+    badge.className='nbadge below'; badge.textContent='✗ Below Nisab — Zakat not due this year';
+    document.getElementById('ns-mult').textContent=Math.round(pct)+'% of nisab reached';
+  }
+  // Update rates header basis note
+  const rbn=document.getElementById('rate-basis-note');
+  if(rbn) rbn.textContent=baseCurrency==='EUR'?'· values in EUR':'· values in '+baseCurrency+' (EUR input below each card)';
+}
+
+async function refreshOneLive(key){
+  const d=RDEFS.find(x=>x.key===key); if(!d) return;
+  if(d.noLiveFetch){ showToast('No live feed for '+d.pair.split(' ')[0]+' — enter spot price manually'); return; }
+  const ENDPOINTS=['https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies','https://latest.currency-api.pages.dev/v1/currencies'];
+  async function fetchWithTimeout(url,ms){
+    return new Promise((res,rej)=>{
+      const ctrl=new AbortController(); const tid=setTimeout(()=>{ctrl.abort();rej(new Error('timeout'));},ms||10000);
+      fetch(url,{signal:ctrl.signal}).then(r=>{clearTimeout(tid);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(res).catch(e=>{clearTimeout(tid);rej(e);});
+    });
+  }
+  try{
+    let val;
+    if(key==='gold'||key==='silver'||key==='platinum'||key==='palladium'){
+      const sym={gold:'xau',silver:'xag',platinum:'xpt',palladium:'xpd'}[key];
+      let data=null;
+      for(const base of ENDPOINTS){try{data=await fetchWithTimeout(base+'/'+sym+'.json',8000);break;}catch{}}
+      if(!data) throw new Error('no data');
+      val = +(data[sym].eur/31.1035).toFixed(key==='gold'?4:5);
+    } else {
+      let data=null;
+      for(const base of ENDPOINTS){try{data=await fetchWithTimeout(base+'/eur.json',8000);break;}catch{}}
+      if(!data) throw new Error('no data');
+      val = +(1/data.eur[key]).toFixed(6);
+    }
+    rates[key]={value:val,source:'live',live:val};
+    delete overrides[key];
+    renderRates(); recalc();
+    showToast('✓ '+key.toUpperCase()+' rate refreshed: '+val);
+  } catch(e){
+    showToast('✗ Could not fetch '+key.toUpperCase()+' — enter manually');
+  }
+}
+
+function setBaseCurrency(val){
+  baseCurrency=val;
+  renderRates(); // re-render cards with new base-currency display values
+  recalc();
+}
+
+function toggle(h){h.closest('.section').classList.toggle('collapsed')}
+
+// ══════════════════════════════════════════════════════════════
+// SUMMARY TEXT
+// ══════════════════════════════════════════════════════════════
+function buildSummary(){
+  const hawl=document.getElementById('hawl-date').value||'—';
+  const cash=sumSec('cash'),invest=sumSec('invest'),metals=sumMetals(),crypto=sumSec('crypto'),re=sumRE(),liab=sumSec('liab');
+  const assets=cash+invest+metals+crypto+re,net=Math.max(0,assets-liab),zakat=net*.025;
+  const nsS=595*getR('silver');
+  const sep=(c='─')=>c.repeat(54);
+
+  const rLines=RDEFS.map(d=>{
+    const r=rates[d.key],src=overrides[d.key]?'manual':r.source;
+    return`  ${d.pair.padEnd(14)} ${String(r.value).padStart(12)}  [${src.toUpperCase()}]`;
+  }).join('\n');
+
+  let t='ZAKAT CALCULATION SUMMARY\nحساب الزكاة\n'+sep('═')+'\n';
+  t+=`Display Currency : ${baseCurrency}\n`;
+  t+=`Hawl Date  : ${hawl}\nGenerated  : ${new Date().toLocaleString()}\n`;
+  t+=`\nEXCHANGE RATES & SPOT PRICES\n${sep()}\n${rLines}\n`;
+
+  const prtSec=(sec,title)=>{
+    if(!state[sec].length) return;
+    t+=`\n${title}\n${sep()}\n`;
+    let sub=0;
+    state[sec].forEach(r=>{
+      const raw=toEUR(r.amount,r.currency),eff=getEff(r);
+      if(!r.amount&&!r.label) return; sub+=eff;
+      const lbl=(r.label||'(unlabelled)')+(r.joint?` [Joint ${r.jointPct}%]`:'');
+      if(r.joint){t+=`  ${lbl}\n    Full: ${fmtBP(raw)}  →  Your ${r.jointPct}%: ${fmtBP(eff)}\n`;}
+      else{t+=`  ${lbl.padEnd(34,'.')} ${fmtBP(eff)}\n`;}
+    });
+    t+=`  ${'SUBTOTAL'.padEnd(34,'.')} ${fmtBP(sub)}\n`;
+  };
+
+  prtSec('cash','BANK ACCOUNTS & CASH');
+  prtSec('invest','INVESTMENTS & PORTFOLIOS');
+
+  if(state.metals.length){
+    t+=`\nPHYSICAL METALS\n${sep()}\n`;
+    let sub=0;
+    state.metals.forEach(r=>{
+      if(!r.grams) return; const v=metalToEUR(r); sub+=v;
+      t+=`  ${(r.label||r.metalType)} (${r.metalType}, ${r.grams}g @ ${getR(r.metalType.toLowerCase())} €/g)\n`;
+      t+=`  ${''.padEnd(34,'.')} ${fmtBP(v)}\n`;
+    });
+    t+=`  ${'SUBTOTAL'.padEnd(34,'.')} ${fmtBP(metals)}\n`;
+  }
+
+  prtSec('crypto','CRYPTOCURRENCY');
+
+  if(state.re.length){
+    t+=`\nREAL ESTATE\n${sep()}\n`;
+    state.re.forEach(r=>{
+      const typeObj=RE_TYPES.find(x=>x.val===r.reType)||RE_TYPES[0];
+      const v=typeObj.zakatable?(parseFloat(r.marketValue)||0):0;
+      t+=`  ${r.label||'Property'} — ${typeObj.label}\n`;
+      t+=`    Market value: ${fmtBP(parseFloat(r.marketValue)||0)}  |  Status: ${typeObj.zakatable?'ZAKATABLE':'NOT ZAKATABLE'}\n`;
+      if(v>0) t+=`    Included: ${fmtBP(v)}\n`;
+    });
+    t+=`  ${'SUBTOTAL (zakatable RE only)'.padEnd(34,'.')} ${fmtBP(re)}\n`;
+  }
+
+  t+=`\n${sep('═')}\nASSETS SUMMARY\n${sep()}\n`;
+  t+=`  ${'Bank Accounts & Cash'.padEnd(34,'.')} ${fmtBP(cash)}\n`;
+  t+=`  ${'Investments'.padEnd(34,'.')} ${fmtBP(invest)}\n`;
+  t+=`  ${'Physical Metals'.padEnd(34,'.')} ${fmtBP(metals)}\n`;
+  t+=`  ${'Cryptocurrency'.padEnd(34,'.')} ${fmtBP(crypto)}\n`;
+  t+=`  ${'Real Estate (resale only)'.padEnd(34,'.')} ${fmtBP(re)}\n`;
+  t+=`  ${'TOTAL ASSETS'.padEnd(34,'.')} ${fmtBP(assets)}\n`;
+
+  if(liab>0){
+    t+=`\nLIABILITIES\n${sep()}\n`;
+    state.liab.forEach(r=>{if(r.amount) t+=`  ${(r.label||'Liability').padEnd(34,'.')} ${fmtBP(getEff(r))}\n`;});
+    t+=`  ${'TOTAL LIABILITIES'.padEnd(34,'.')} ${fmtBP(liab)}\n`;
+  }
+
+  t+=`\n${sep('═')}\nFINAL CALCULATION\n${sep('═')}\n`;
+  t+=`  ${'Total Assets'.padEnd(34,'.')} ${fmtBP(assets)}\n`;
+  t+=`  ${'Less: Liabilities'.padEnd(34,'.')} ${fmtBP(liab)}\n`;
+  t+=`  ${'NET ZAKATABLE WEALTH'.padEnd(34,'.')} ${fmtBP(net)}\n`;
+  t+=`  ${'ZAKAT DUE (2.5%)'.padEnd(34,'.')} ${fmtBP(zakat)}\n`;
+  t+=`${sep()}\n  ${'Monthly'.padEnd(34,'.')} ${fmtBP(zakat/12)}\n  ${'Quarterly'.padEnd(34,'.')} ${fmtBP(zakat/4)}\n`;
+  t+=`${sep('═')}\n`;
+  t+=`Status  : ${net>=nsS?'ABOVE NISAB — Zakat is obligatory':'BELOW NISAB — Zakat not due'}\n`;
+  if(net>=nsS) t+=`Wealth  : ${(net/nsS).toFixed(1)}× the silver nisab (${fmtBP(nsS)})\n`;
+  t+=`Standard: Silver nisab (595g) · Rate: 2.5%\n`;
+  t+=`Rates   : ${Object.values(rates).some(r=>r.source==='live')?'Live (fetched at generation time)':'Manual / fallback'}\n`;
+  t+=`Note    : Joint account shares reflect your % only. Rental income belongs in bank accounts.\n`;
+  t+=`Disclaimer: Consult a qualified scholar for rulings specific to your situation.\n`;
+  t+=sep('═')+'\n';
+  return t;
+}
+
+function openModal(){document.getElementById('spre').textContent=buildSummary();document.getElementById('modal').classList.remove('hidden');}
+function closeModal(){document.getElementById('modal').classList.add('hidden');}
+async function copySummary(){
+  try{await navigator.clipboard.writeText(document.getElementById('spre').textContent);showToast('✓ Copied! Paste into Notes, Word, or any text app.');}
+  catch{const el=document.getElementById('spre');const r=document.createRange();r.selectNodeContents(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);showToast('Text selected — press Cmd+C / Ctrl+C to copy');}
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+// ══════════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ══════════════════════════════════════════════════════════════
+function gatherState(){
+  const rs={};
+  RDEFS.forEach(d=>{rs[d.key]={value:rates[d.key].value,overridden:!!overrides[d.key]};});
+  return{
+    _v:6,_at:new Date().toISOString(),
+    baseCurrency:baseCurrency,
+    hawlDate:document.getElementById('hawl-date').value,
+    rates:rs,
+    cash:state.cash.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
+    invest:state.invest.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
+    metals:state.metals.map(({label,metalType,grams})=>({label,metalType,grams})),
+    crypto:state.crypto.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
+    re:state.re.map(({label,reType,marketValue,rentalIncome})=>({label,reType,marketValue,rentalIncome})),
+    liab:state.liab.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
+  };
+}
+function saveJSON(){
+  const d=gatherState();
+  const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=`zakat-${d.hawlDate||'calc'}.json`;a.click();
+  URL.revokeObjectURL(u);showToast('✓ Saved as zakat-'+(d.hawlDate||'calc')+'.json');
+}
+function loadJSON(){document.getElementById('jloader').click();}
+function handleLoad(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{try{applyState(JSON.parse(e.target.result));showToast('✓ Loaded: '+f.name);}catch{showToast('✗ Invalid JSON');}};
+  r.readAsText(f);ev.target.value='';
+}
+function applyState(d){
+  if(d.hawlDate) document.getElementById('hawl-date').value=d.hawlDate;
+  // Restore saved base currency
+  if(d.baseCurrency){
+    baseCurrency=d.baseCurrency;
+    const sel=document.getElementById('base-currency-sel');
+    if(sel) sel.value=d.baseCurrency;
+  }
+  // Restore rates from snapshot — marked 'snapshot' so user knows these are saved values
+  if(d.rates){
+    Object.entries(d.rates).forEach(([k,v])=>{
+      const val=typeof v==='object'?v.value:v;
+      const ovr=typeof v==='object'?v.overridden:false;
+      if(rates[k]){
+        rates[k].value=val;
+        rates[k].source='snapshot';
+        rates[k].live=null; // cleared — user must refresh to get live values
+        if(ovr) overrides[k]=true;
+        else delete overrides[k]; // snapshot, not a user override
+      }
+    });
+    // Show snapshot status in the rate panel header
+    setStatus('snapshot','Showing saved snapshot rates — click ↻ Refresh for live rates');
+  }
+  ['cash','invest','crypto','liab'].forEach(sec=>{
+    state[sec]=[];
+    (d[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
+  });
+  state.metals=[];(d.metals||[]).forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
+  state.re=[];(d.re||[]).forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  renderRates();renderAll();recalc();
+}
+
+const DEFAULTS={
+  hawlDate:'2026-03-01',
+  cash:[
+    {label:'Current Account',amount:'',currency:'EUR',joint:false,jointPct:100},
+    {label:'Savings Account',amount:'',currency:'EUR',joint:false,jointPct:100},
+    {label:'Business Account',amount:'',currency:'EUR',joint:false,jointPct:100},
+    {label:'Rent Security Deposit (Kaution)',amount:'',currency:'EUR',joint:false,jointPct:100},
+  ],
+  invest:[
+    {label:'Broker — Portfolio (total market value)',amount:'',currency:'EUR',joint:false,jointPct:100},
+    {label:'Broker — Uninvested Cash',amount:'',currency:'EUR',joint:false,jointPct:100},
+  ],
+  metals:[
+    {label:'Physical Gold',metalType:'Gold',grams:''},
+    {label:'Physical Silver',metalType:'Silver',grams:''},
+  ],
+  crypto:[{label:'Exchange / Wallet',amount:'',currency:'USD',joint:false,jointPct:100}],
+  re:[
+    {label:'Example: Rental Apartment',reType:'rental',marketValue:'',rentalIncome:''},
+    {label:'Example: Property for Resale',reType:'resale',marketValue:'',rentalIncome:''},
+  ],
+  liab:[
+    {label:'Tax liability (current year)',amount:'',currency:'EUR',joint:false,jointPct:100},
+    {label:'Next debt instalment due',amount:'',currency:'EUR',joint:false,jointPct:100},
+  ]
+};
+
+function resetAll(){
+  if(!confirm('Reset to blank example template? Rates will be re-fetched.'))return;
+  Object.keys(overrides).forEach(k=>delete overrides[k]);
+  RDEFS.forEach(d=>{rates[d.key]={value:d.fallback,source:'fallback',live:null};});
+  ['cash','invest','crypto','liab'].forEach(sec=>{
+    state[sec]=[];
+    (DEFAULTS[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
+  });
+  state.metals=[];DEFAULTS.metals.forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
+  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  document.getElementById('hawl-date').value=DEFAULTS.hawlDate;
+  renderAll();fetchRates();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(function init(){
+  renderRates();
+  // Load defaults
+  ['cash','invest','crypto','liab'].forEach(sec=>{
+    state[sec]=[];
+    (DEFAULTS[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
+  });
+  state.metals=[];DEFAULTS.metals.forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
+  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  renderAll();recalc();
+  fetchRates(); // async — UI already usable
+})();
+</script>
+</body>
+</html>
