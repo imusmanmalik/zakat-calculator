@@ -165,7 +165,8 @@ header{padding:36px 0 22px;border-bottom:1px solid var(--border-gold);margin-bot
 .jt-info{font-size:.66rem;color:var(--text-dim);font-style:italic}
 .jt-disp{font-size:.67rem;font-family:'DM Mono',monospace;color:var(--purple)}
 .awrap{display:flex;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0}
-.csel{background:var(--surface2);border:none;border-right:1px solid var(--border);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.67rem;padding:0 5px;height:29px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;min-width:44px}
+.csel{background:var(--surface2);border:none;border-right:1px solid var(--border);color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.67rem;padding:0 16px 0 5px;height:29px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;min-width:52px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4' viewBox='0 0 7 4'%3E%3Cpath d='M0 0l3.5 4L7 0z' fill='%235A5A4A'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;transition:color .15s,border-color .15s}
+.csel:hover{color:var(--gold-light);border-right-color:var(--gold-dark);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4' viewBox='0 0 7 4'%3E%3Cpath d='M0 0l3.5 4L7 0z' fill='%23C8A84B'/%3E%3C/svg%3E")}
 .anum{background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.79rem;padding:0 7px;height:29px;width:112px}
 .anum::placeholder{color:var(--text-dim)}
 .dcmp{font-family:'DM Mono',monospace;font-size:.74rem;color:var(--gold);min-width:84px;text-align:right;white-space:nowrap;flex-shrink:0;padding-top:6px}
@@ -423,7 +424,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
     <button class="badd" onclick="addRow('cash')">＋ Add account</button>
     <div class="note">
       <strong>Include:</strong> personal current/savings accounts, business accounts, rent security deposits (Kaution — still your money, will return), and any significant cash on hand. All currencies convert to EUR automatically.<br><br>
-      <strong>Joint accounts:</strong> Toggle "Joint account" on any row and enter your ownership percentage. Only your share is counted. Your co-owner calculates their share independently in their own Zakat.
+      <strong>Joint accounts:</strong> Toggle "Joint account" on any row and enter your ownership percentage. Only your share is counted. Your co-owner calculates their share independently in their own Zakat.<br><br>
+      <strong>Tip:</strong> Each row has its own currency — click the <strong>EUR ▾</strong> badge to enter an amount in GBP, PKR, USD or any other supported currency. Totals always convert automatically.
     </div>
     <div class="note purple" style="margin-top:7px">
       <strong>Joint account example:</strong> Account shows €10,000. You own 50% → your zakatable share = €5,000. Your spouse includes their €5,000 in their own separate calculation. Zakat is a personal obligation — there is no "joint Zakat."
@@ -445,7 +447,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
     <button class="badd" onclick="addRow('invest')">＋ Add broker / portfolio</button>
     <div class="note info">
       <strong>Simplified method (widely accepted):</strong> Enter the total current market value shown in your broker app — no need to list individual stocks or ETFs. Whether it holds index ETFs, sector funds, physical metal ETCs, or individual stocks — the full portfolio value is zakatable at 2.5%.<br><br>
-      <strong>Uninvested cash:</strong> Add as a separate line if shown separately in your app. Physical Gold/Silver ETCs are treated identically to physical metals held directly — same calculation, same rate.
+      <strong>Uninvested cash:</strong> Add as a separate line if shown separately in your app. Physical Gold/Silver ETCs are treated identically to physical metals held directly — same calculation, same rate.<br><br>
+      <strong>Tip:</strong> Each row has its own currency — click the <strong>EUR ▾</strong> badge to enter a portfolio value in its native currency (e.g. USD for a US broker).
     </div>
   </div>
 </div>
@@ -485,7 +488,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
     <button class="badd" onclick="addRow('crypto')">＋ Add wallet / exchange</button>
     <div class="note warn">
       <strong>Current value only:</strong> If you invested €5,000 and it is now worth €800, Zakat is on €800. Past losses cannot be deducted from other zakatable assets.<br><br>
-      <strong>Stablecoins (USDC, USDT, etc.):</strong> Treated as cash — fully zakatable at face value. Include all exchanges, hot wallets, cold wallets, and earn/staking balances.
+      <strong>Stablecoins (USDC, USDT, etc.):</strong> Treated as cash — fully zakatable at face value. Include all exchanges, hot wallets, cold wallets, and earn/staking balances.<br><br>
+      <strong>Tip:</strong> Each row has its own currency — click the <strong>EUR ▾</strong> badge to enter a balance in USD, GBP, or any other supported currency.
     </div>
   </div>
 </div>
@@ -528,7 +532,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
     <div class="note warn">
       <strong>Include (currently due):</strong> Tax bills payable this year, credit card balance, personal loans currently due, next instalment payment on a debt.<br><br>
       <strong>Exclude:</strong> Future mortgage instalments not yet due. The widely-accepted position is to deduct only what is <em>immediately payable</em> — not the full outstanding balance of a long-term loan. If you owe €200,000 on a mortgage but only €1,200 is due this month, deduct €1,200.<br><br>
-      <strong>Rental property financing:</strong> If a property is zakatable (e.g. for resale), the loan secured against it can be deducted from that property's value.
+      <strong>Rental property financing:</strong> If a property is zakatable (e.g. for resale), the loan secured against it can be deducted from that property's value.<br><br>
+      <strong>Tip:</strong> Each row has its own currency — click the <strong>EUR ▾</strong> badge to enter a liability in its original currency.
     </div>
   </div>
 </div>
@@ -571,7 +576,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
   <div class="site-footer-copy">
     &copy; 2026 <a href="https://github.com/imusmanmalik" target="_blank" rel="noopener">Usman Malik</a>
     &nbsp;&mdash;&nbsp;
-    <a href="https://github.com/imusmanmalik/zakat-calculator/releases" target="_blank" rel="noopener"><!-- x-release-please-start-version -->v1.0.0<!-- x-release-please-end-version --></a>
+    <a href="https://github.com/imusmanmalik/zakat-calculator/releases" target="_blank" rel="noopener"><!-- x-release-please-start-version -->v1.0.1<!-- x-release-please-end-version --></a>
     &nbsp;&mdash;&nbsp;
     Free &amp; open-source. Not a fatwa. Rates are indicative only.
   </div>

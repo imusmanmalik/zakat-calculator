@@ -9,11 +9,7 @@
       "draft": false,
       "prerelease": false,
       "extra-files": [
-        "version.txt",
-        {
-          "type": "generic",
-          "path": "index.html"
-        }
+        "version.txt"
       ]
     }
   }

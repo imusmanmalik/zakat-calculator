@@ -9,10 +9,15 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  pages: write
+  id-token: write
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: Run release-please
         uses: googleapis/release-please-action@v4
@@ -20,7 +25,6 @@ jobs:
         with:
           release-type: simple
 
-      # Only runs when release-please actually creates a new release
       - name: Checkout (for asset upload)
         uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
@@ -32,3 +36,34 @@ jobs:
         run: |
           gh release upload "${{ steps.release.outputs.tag_name }}" index.html \
             --clobber
+
+  # Runs only on an actual release — guaranteed to run AFTER release-please
+  # has written the version bump, so GitHub Pages always gets the correct version.
+  deploy-pages:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject version from version.txt into index.html
+        run: |
+          VERSION=$(cat version.txt)
+          sed -i "s|<!-- x-release-please-start-version -->.*<!-- x-release-please-end-version -->|<!-- x-release-please-start-version -->v${VERSION}<!-- x-release-please-end-version -->|" index.html
+          echo "Deployed version: v${VERSION}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

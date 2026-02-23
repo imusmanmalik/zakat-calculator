@@ -20,6 +20,10 @@ concurrency:
 
 jobs:
   deploy:
+    # Skip release-please's own version-bump commit — that commit triggers
+    # a deployment inside release-please.yml after the release is fully written.
+    # Running here in parallel would race and deploy the pre-bump state.
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release')"
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -29,13 +33,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inject version from version.txt into index.html
+        run: |
+          VERSION=$(cat version.txt)
+          sed -i "s|<!-- x-release-please-start-version -->.*<!-- x-release-please-end-version -->|<!-- x-release-please-start-version -->v${VERSION}<!-- x-release-please-end-version -->|" index.html
+          echo "Deployed version: v${VERSION}"
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Serve from the repo root — index.html is at the root
           path: '.'
 
       - name: Deploy to GitHub Pages
