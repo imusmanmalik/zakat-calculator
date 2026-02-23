@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/imusmanmalik/zakat-calculator/compare/v1.0.1...v1.1.0) (2026-02-23)
+
+
+### Features
+
+* improve currency selector discoverability with visual cue and tips ([2a7369a](https://github.com/imusmanmalik/zakat-calculator/commit/2a7369a391c25a232ba331c94d2f4ca456373752))
+
 ## [1.0.1](https://github.com/imusmanmalik/zakat-calculator/compare/v1.0.0...v1.0.1) (2026-02-21)
 
 
