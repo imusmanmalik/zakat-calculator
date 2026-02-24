@@ -1,10 +1,9 @@
 name: Deploy to GitHub Pages
 
+# Automatic deployment only happens via release-please.yml when a release is
+# published — ensuring the deployed version always matches a tagged release.
+# This workflow is kept for manual re-deploys without creating a new release.
 on:
-  push:
-    branches:
-      - main
-  # Allow manual trigger from the Actions tab
   workflow_dispatch:
 
 # Grant the GITHUB_TOKEN the permissions needed for Pages deployment
@@ -20,10 +19,6 @@ concurrency:
 
 jobs:
   deploy:
-    # Skip release-please's own version-bump commit — that commit triggers
-    # a deployment inside release-please.yml after the release is fully written.
-    # Running here in parallel would race and deploy the pre-bump state.
-    if: "!startsWith(github.event.head_commit.message, 'chore(main): release')"
     runs-on: ubuntu-latest
     environment:
       name: github-pages

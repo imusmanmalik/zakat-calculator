@@ -29,6 +29,17 @@ jobs:
         uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
 
+      - name: Sync version in index.html and commit to main
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          VERSION=$(cat version.txt)
+          sed -i "s|<!-- x-release-please-start-version -->.*<!-- x-release-please-end-version -->|<!-- x-release-please-start-version -->v${VERSION}<!-- x-release-please-end-version -->|" index.html
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --staged --quiet || git commit -m "chore: sync version in index.html to v${VERSION} [skip ci]"
+          git push
+
       - name: Attach index.html as release asset
         if: ${{ steps.release.outputs.release_created }}
         env:
