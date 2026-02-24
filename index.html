@@ -576,7 +576,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0}
   <div class="site-footer-copy">
     &copy; 2026 <a href="https://github.com/imusmanmalik" target="_blank" rel="noopener">Usman Malik</a>
     &nbsp;&mdash;&nbsp;
-    <a href="https://github.com/imusmanmalik/zakat-calculator/releases" target="_blank" rel="noopener"><!-- x-release-please-start-version -->v1.0.1<!-- x-release-please-end-version --></a>
+    <a href="https://github.com/imusmanmalik/zakat-calculator/releases" target="_blank" rel="noopener"><!-- x-release-please-start-version -->v1.1.0<!-- x-release-please-end-version --></a>
     &nbsp;&mdash;&nbsp;
     Free &amp; open-source. Not a fatwa. Rates are indicative only.
   </div>
@@ -1019,7 +1019,7 @@ function renderRERow(row){
       <div class="re-field">
         <label>Current market value</label>
         <div class="re-field-input">
-          <span class="re-field-cur">EUR</span>
+          <select class="csel" onchange="updRE('${row.id}','currency',this.value);reRenderRow('${row.id}');recalc()">${curOpts(row.currency)}</select>
           <input type="number" placeholder="0" value="${row.marketValue||''}" step="100"
             oninput="updRE('${row.id}','marketValue',this.value);recalc()">
         </div>
@@ -1027,7 +1027,7 @@ function renderRERow(row){
       <div class="re-field">
         <label>Rental income received (annual)</label>
         <div class="re-field-input">
-          <span class="re-field-cur">EUR</span>
+          <select class="csel" onchange="updRE('${row.id}','currency',this.value);reRenderRow('${row.id}');recalc()">${curOpts(row.currency)}</select>
           <input type="number" placeholder="0" value="${row.rentalIncome||''}" step="100"
             title="For rental properties — actual cash received. Include this in bank accounts, not here."
             oninput="updRE('${row.id}','rentalIncome',this.value);recalc()">
@@ -1040,7 +1040,7 @@ function renderRERow(row){
         :''}
     </div>
     <div class="re-contribution" id="re-cmp-${row.id}">
-      ${isZakatable&&row.marketValue?fmtB(parseFloat(row.marketValue)||0)+' → Zakat: '+fmtB((parseFloat(row.marketValue)||0)*.025):'Not included in Zakat total'}
+      ${isZakatable&&row.marketValue?fmtB(toEUR(parseFloat(row.marketValue)||0,row.currency||'EUR'))+' → Zakat: '+fmtB(toEUR(parseFloat(row.marketValue)||0,row.currency||'EUR')*.025):'Not included in Zakat total'}
     </div>
   `;
   return el;
@@ -1089,7 +1089,7 @@ function addMetalRow(d={}){
   recalc();
 }
 function addRERow(d={}){
-  const r={id:uid(),label:d.label||'',reType:d.reType||'rental',marketValue:d.marketValue||'',rentalIncome:d.rentalIncome||''};
+  const r={id:uid(),label:d.label||'',reType:d.reType||'rental',marketValue:d.marketValue||'',rentalIncome:d.rentalIncome||'',currency:d.currency||'EUR'};
   state.re.push(r);
   document.getElementById('list-re').appendChild(renderRERow(r));
   recalc();
@@ -1138,7 +1138,7 @@ function sumRE(){
   let t=0;
   state.re.forEach(row=>{
     const typeObj=RE_TYPES.find(x=>x.val===row.reType)||RE_TYPES[0];
-    const v=typeObj.zakatable?(parseFloat(row.marketValue)||0):0;
+    const v=typeObj.zakatable?toEUR(parseFloat(row.marketValue)||0,row.currency||'EUR'):0;
     t+=v;
     const el=document.getElementById('re-cmp-'+row.id);
     if(el){
@@ -1348,7 +1348,7 @@ function gatherState(){
     invest:state.invest.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
     metals:state.metals.map(({label,metalType,grams})=>({label,metalType,grams})),
     crypto:state.crypto.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
-    re:state.re.map(({label,reType,marketValue,rentalIncome})=>({label,reType,marketValue,rentalIncome})),
+    re:state.re.map(({label,reType,marketValue,rentalIncome,currency})=>({label,reType,marketValue,rentalIncome,currency})),
     liab:state.liab.map(({label,amount,currency,joint,jointPct})=>({label,amount,currency,joint,jointPct})),
   };
 }
@@ -1395,7 +1395,7 @@ function applyState(d){
     (d[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
   });
   state.metals=[];(d.metals||[]).forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
-  state.re=[];(d.re||[]).forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  state.re=[];(d.re||[]).forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||'',currency:r.currency||'EUR'}));
   renderRates();renderAll();recalc();
 }
 
@@ -1435,7 +1435,7 @@ function resetAll(){
     (DEFAULTS[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
   });
   state.metals=[];DEFAULTS.metals.forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
-  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||'',currency:r.currency||'EUR'}));
   document.getElementById('hawl-date').value=DEFAULTS.hawlDate;
   renderAll();fetchRates();
 }
@@ -1454,7 +1454,7 @@ function showToast(msg){
     (DEFAULTS[sec]||[]).forEach(r=>state[sec].push({id:uid(),label:r.label||'',amount:r.amount||'',currency:r.currency||'EUR',joint:r.joint||false,jointPct:r.jointPct||100}));
   });
   state.metals=[];DEFAULTS.metals.forEach(r=>state.metals.push({id:uid(),label:r.label||'',metalType:r.metalType||'Gold',grams:r.grams||''}));
-  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||''}));
+  state.re=[];DEFAULTS.re.forEach(r=>state.re.push({id:uid(),label:r.label||'',reType:r.reType||'rental',marketValue:r.marketValue||'',rentalIncome:r.rentalIncome||'',currency:r.currency||'EUR'}));
   renderAll();recalc();
   fetchRates(); // async — UI already usable
 })();
