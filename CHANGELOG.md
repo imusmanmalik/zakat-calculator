@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/imusmanmalik/zakat-calculator/compare/v1.1.0...v1.1.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* add currency selector to real estate section ([8ec4ca2](https://github.com/imusmanmalik/zakat-calculator/commit/8ec4ca24a224ae7370c8dda103f61b12738e86fe))
+
 ## [1.1.0](https://github.com/imusmanmalik/zakat-calculator/compare/v1.0.1...v1.1.0) (2026-02-23)
 
 
